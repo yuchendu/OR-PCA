@@ -3,4 +3,8 @@ The online robust PCA is implemented to be applied to anomaly detection from fun
 ## The Mathematical Model
 The mathematical model proposed by the authors is demonstrated below:
 
-![The mathematical model](https://github.com/yuchendu/OR-PCA/blob/main/fig/equation(2).png)
+![The overall mathematical model](https://github.com/yuchendu/OR-PCA/blob/main/fig/overall.png)
+
+![Deviding the matrix to single vectors](https://github.com/yuchendu/OR-PCA/blob/main/fig/single_vector.png)
+
+![Format 2](https://github.com/yuchendu/OR-PCA/blob/main/fig/sum.png)
