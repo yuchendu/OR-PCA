@@ -55,7 +55,7 @@ for i = 1:(num_trained_normal+n)
     end
     
     x_i = X(:,i);
-    s_i = S(:,i);
+    s_i = zeros(size(X,1),1);
     U_i = U;
     
     Algorithm_converge = 0;
