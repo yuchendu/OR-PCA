@@ -131,8 +131,8 @@ for i = 1:(num_trained_normal+n)
         continue; 
     end
     
-    L(:,i) = l_i;
-    S(:,i) = s_i;
+    L(:,i-num_trained_normal) = l_i;
+    S(:,i-num_trained_normal) = s_i;
 end
 
 ORPCA_model.L = matten(L', sz_X_ab, 3);
