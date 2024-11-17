@@ -53,36 +53,67 @@ for i = 1:(num_trained_normal+n)
             'th online decomposition of abnormal image started, totally ',num2str(num_trained_normal+n),...
             ' images. ##']);
     end
-    
+    tic;
     x_i = X(:,i);
     s_i = zeros(size(X,1),1);
-    U_i = U;
     
     Algorithm_converge = 0;
     iteration_time = 0;
     while ~Algorithm_converge
         iteration_time = iteration_time + 1;
-        v_i = (U_i'*U_i + lambda1*eye(size(U_i,2)))\U_i'*(x_i - s_i);
-        s_i = softThreshold(x_i - U_i*v_i, lambda2);
-        l_i = U_i*v_i;
+        % update v and s
+        v_i = (U'*U + lambda1*eye(size(U,2)))\U'*(x_i - s_i);
+        s_i = softThreshold(x_i - U*v_i, lambda2);
+        l_i = U*v_i;
         error_converge = norm(x_i-l_i-s_i,2)/norm(x_i);
         if error_converge <= converge_error
             disp('# Algorithm converged. #');
-            disp(['U max: ', num2str(max(U_i(:))),', x_i - U*v_i, max: ',num2str(max(x_i - U_i*v_i))]);
             Algorithm_converge = 1;
         end
         if iteration_time >= algorithm_iterMax
             disp('# Maximum iteration reached. #');
-            disp(['U max: ', num2str(max(U_i(:))),', x_i - U*v_i, max: ',num2str(max(x_i - U_i*v_i))]);
             break;
         end
     end
+    % update U
+    A = A + v_i * v_i';
+    B = B + (x_i - s_i) * v_i';
+    A_wave = A+lambda1*eye(size(A,2));
+    for jj = 1:size(U,2)
+        U(:,jj) = U(:,jj) - (U * A_wave(:,jj) - B(:,jj))/A_wave(jj,jj);
+    end
+    % update v and s
+    v_i = (U'*U + lambda1*eye(size(U,2)))\U'*(x_i - s_i);
+    s_i = softThreshold(x_i - U*v_i, lambda2);
+    % reconstructed low rank image l
+    l_i = U*v_i;
+    error_converge = norm(x_i-l_i-s_i,2)/norm(x_i);
+    disp(['U max: ', num2str(max(U(:))),', x_i - U*v_i, max: ',num2str(max(x_i - U*v_i))]);
+    disp(['A: ',num2str(min(A(:))),'~',num2str(max(A(:))), ', B: ',num2str(min(B(:))),'~',num2str(max(B(:)))]);
+    % store reconstructed error for each image
     residual(i) = error_converge;
-    s_i_diff = x_i - l_i;
-
+    
+    t = toc;
+    disp(['Time consumption: ',num2str(t),' seconds, ',num2str(iteration_time),' iteration time.']);
+    if i <= num_trained_normal
+        disp(['## The ', num2str(i),...
+            'th normal image has been finished, reconstruct error: ',num2str(error_converge), '. ##']);
+    else
+        disp(['## The ', num2str(i-num_trained_normal),...
+            'th abnormal image has been finished, reconstruct error: ',num2str(error_converge), '. ##']);
+    end
+    disp('---------------');
+     
+    if i > num_trained_normal 
+        L(:,i-num_trained_normal) = l_i;
+        S(:,i-num_trained_normal) = s_i;
+    end
+    
+    %%%%%%%%%%% real time image reconstruction performance illustration %%%%%%%%%%%
     im_x = uint8(reshape(x_i,[sz_X_ab(1), sz_X_ab(2)]));
     im_l = uint8(reshape(l_i,[sz_X_ab(1), sz_X_ab(2)]));
     im_s = uint8(abs(reshape(s_i,[sz_X_ab(1), sz_X_ab(2)])));
+    s_i_diff = x_i - l_i;
     im_s_diff = uint8(abs(reshape(s_i_diff,[sz_X_ab(1), sz_X_ab(2)])));
 
     figure(1);
@@ -104,35 +135,7 @@ for i = 1:(num_trained_normal+n)
         suptitle(['The ', num2str(i-num_trained_normal),'th abnormal image in X']);
     end
     drawnow;
-
-
-    A = A + v_i * v_i';
-    B = B + (x_i - s_i) * v_i';
-    
-    disp(['A: ',num2str(min(A(:))),'~',num2str(max(A(:))), ', B: ',num2str(min(B(:))),'~',num2str(max(B(:)))]);
-
-    A_wave = A+lambda1*eye(size(A,2));
-
-    U = U_i;
-    for jj = 1:size(U,2)
-        U(:,jj) = U(:,jj) - (U * A_wave(:,jj) - B(:,jj))/A_wave(jj,jj);
-    end
-    
-    if i <= num_trained_normal
-        disp(['## The ', num2str(i),...
-            'th normal image has been finished, reconstruct error: ',num2str(error_converge), '. ##']);
-    else
-        disp(['## The ', num2str(i-num_trained_normal),...
-            'th abnormal image has been finished, reconstruct error: ',num2str(error_converge), '. ##']);
-    end
-    disp('---------------');
-     
-    if i <= num_trained_normal 
-        continue; 
-    end
-    
-    L(:,i-num_trained_normal) = l_i;
-    S(:,i-num_trained_normal) = s_i;
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end
 
 ORPCA_model.L = matten(L', sz_X_ab, 3);
